@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin dashboard — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand" style="margin-bottom:18px;"><div class="brand-mark">+</div> MediCare</div>
+      <a class="active" href="/admin-dashboard.html">Overview</a>
+      <a href="/emergency.html">Emergency</a>
+      <a href="/appointments.html">Appointments</a>
+      <button class="linkish" onclick="logout()">Logout</button>
+    </aside>
+    <main class="main">
+      <h1>Hospital overview</h1>
+      <div class="cards">
+        <div class="kpi"><span>Patients</span><b id="p">0</b></div>
+        <div class="kpi"><span>Doctors</span><b id="d">0</b></div>
+        <div class="kpi"><span>Today's appointments</span><b id="a">0</b></div>
+        <div class="kpi"><span>Emergency waiting</span><b id="e">0</b></div>
+      </div>
+      <div class="split">
+        <div class="card">
+          <h3>Emergency mix</h3>
+          <canvas id="chart" height="140"></canvas>
+        </div>
+        <div class="card">
+          <h3>Add doctor</h3>
+          <form class="form" id="doc">
+            <input name="name" placeholder="Name" required />
+            <input name="specialization" placeholder="Specialization" required />
+            <input name="phone" placeholder="Phone" />
+            <input name="email" placeholder="Email" />
+            <button class="btn" type="submit">Save doctor</button>
+          </form>
+          <h3 style="margin-top:22px;">Add schedule</h3>
+          <form class="form" id="sch">
+            <select name="doctor_id" id="doc-select"></select>
+            <select name="weekday">
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+              <option value="0">Sunday</option>
+            </select>
+            <input type="time" name="start_time" required />
+            <input type="time" name="end_time" required />
+            <button class="btn ghost" type="submit">Save schedule</button>
+          </form>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h3>Doctors</h3>
+        <table class="table" id="docs"><thead><tr><th>Name</th><th>Specialization</th><th>Schedule</th></tr></thead><tbody></tbody></table>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    (async () => {
+      await requireLogin(["admin"]);
+      const stats = await api("/api/admin/stats");
+      document.getElementById("p").textContent = stats.patients;
+      document.getElementById("d").textContent = stats.doctors;
+      document.getElementById("a").textContent = stats.appointmentsToday;
+      document.getElementById("e").textContent = stats.emergencyWaiting;
+      const labels = stats.severity.map((s) => s.severity);
+      const values = stats.severity.map((s) => s.n);
+      new Chart(document.getElementById("chart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ label: "Waiting cases", data: values, backgroundColor: ["#e11d48", "#ea580c", "#ca8a04", "#16a34a"] }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      const { doctors } = await api("/api/doctors");
+      document.getElementById("doc-select").innerHTML = doctors.map((d) => `<option value="${d.id}">${d.name}</option>`).join("");
+      document.querySelector("#docs tbody").innerHTML = doctors.map((d) => `
+        <tr>
+          <td>${d.name}</td>
+          <td>${d.specialization}</td>
+          <td>${d.schedule.map((s) => weekdayName(s.weekday) + " " + formatTime(s.start_time) + "–" + formatTime(s.end_time)).join(", ")}</td>
+        </tr>
+      `).join("");
+      document.getElementById("doc").onsubmit = async (e) => {
+        e.preventDefault();
+        await api("/api/doctors", { method: "POST", body: Object.fromEntries(new FormData(e.target)) });
+        location.reload();
+      };
+      document.getElementById("sch").onsubmit = async (e) => {
+        e.preventDefault();
+        await api("/api/schedules", { method: "POST", body: Object.fromEntries(new FormData(e.target)) });
+        location.reload();
+      };
+    })();
+  </script>
+</body>
+</html>

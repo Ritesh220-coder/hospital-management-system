@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediCare Hospital</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">+</div> MediCare</div>
+    <nav class="nav">
+      <a class="active" href="/">Home</a>
+      <a href="/login.html">Doctors</a>
+      <a href="/emergency.html">Emergency</a>
+      <a href="/login.html">Login</a>
+    </nav>
+    <a class="btn" href="/login.html">Login / Register</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <p class="muted">College Hospital Management System</p>
+      <h1>Patient records, doctor schedules, and emergency care in one place.</h1>
+      <p>Book appointments, keep medical history digital, and serve critical cases first with a heap-based priority queue.</p>
+      <div style="display:flex;gap:10px;margin-top:22px;">
+        <a class="btn" href="/login.html">Book an appointment</a>
+        <a class="btn danger" href="/emergency.html">Emergency help</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <h3>Today at MediCare</h3>
+      <div class="stat-row">
+        <div class="stat"><b>42</b><span>Doctors</span></div>
+        <div class="stat"><b>86</b><span>Appointments</span></div>
+        <div class="stat"><b>7</b><span>Emergency</span></div>
+      </div>
+      <div class="emergency-cta">Critical patients are served before later arrivals with lower severity.</div>
+    </div>
+  </section>
+
+  <section class="services">
+    <h2>Services</h2>
+    <div class="grid-3">
+      <div class="card"><h3>Appointments</h3><p class="muted">Choose department, doctor, date, and a free slot. Double booking is blocked.</p></div>
+      <div class="card"><h3>Electronic records</h3><p class="muted">Diagnosis, prescriptions, and visit history for every patient.</p></div>
+      <div class="card"><h3>Emergency queue</h3><p class="muted">Priority 1 critical cases jump ahead of fever and non-urgent arrivals.</p></div>
+    </div>
+  </section>
+</body>
+</html>

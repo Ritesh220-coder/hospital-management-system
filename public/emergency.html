@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency department — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand" style="margin-bottom:18px;"><div class="brand-mark">+</div> MediCare</div>
+      <a id="dash-link" href="/">Dashboard</a>
+      <a class="active" href="/emergency.html">Emergency</a>
+      <button class="linkish" onclick="logout()">Logout</button>
+    </aside>
+    <main class="main">
+      <div class="page-title">
+        <div>
+          <h1>Emergency department</h1>
+          <p class="muted">Heap priority queue: critical first, then arrival time for ties</p>
+        </div>
+        <button class="btn danger" id="next" type="button">Call next patient</button>
+      </div>
+      <div class="split">
+        <div class="card">
+          <h3>Current priority queue</h3>
+          <div id="queue"></div>
+        </div>
+        <div class="card" id="intake-card">
+          <h3>Register emergency patient</h3>
+          <form class="form" id="intake">
+            <div class="flash" id="flash"></div>
+            <label>Name</label>
+            <input name="patient_name" required />
+            <label>Age</label>
+            <input name="age" type="number" />
+            <label>Symptoms</label>
+            <textarea name="symptoms" required></textarea>
+            <label>Severity</label>
+            <select name="severity">
+              <option value="critical">Critical — priority 1</option>
+              <option value="serious">Serious — priority 2</option>
+              <option value="moderate">Moderate — priority 3</option>
+              <option value="normal">Normal — priority 4</option>
+            </select>
+            <button class="btn" type="submit">Insert into queue</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    function renderQueue(queue) {
+      document.getElementById("queue").innerHTML = queue.map((c, i) => `
+        <div class="queue-item ${c.severity}">
+          <div class="rank">#${i + 1}</div>
+          <div>
+            <b>${c.patient_name}</b>
+            <div class="muted">${c.symptoms || ""}</div>
+          </div>
+          <span class="badge ${c.severity}">${c.severity}</span>
+          <span class="muted">${new Date(c.arrival_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        </div>
+      `).join("") || "<p class='muted'>No waiting patients.</p>";
+    }
+    (async () => {
+      const user = await requireLogin(["admin", "doctor", "staff", "patient"]);
+      const homes = { patient: "/patient-dashboard.html", doctor: "/doctor-dashboard.html", admin: "/admin-dashboard.html", staff: "/emergency.html" };
+      document.getElementById("dash-link").href = homes[user.role];
+      if (user.role === "patient") {
+        document.getElementById("intake-card").style.display = "none";
+        document.getElementById("next").style.display = "none";
+      }
+      const { queue } = await api("/api/emergency");
+      renderQueue(queue);
+      document.getElementById("next").onclick = async () => {
+        try {
+          const data = await api("/api/emergency/next", { method: "POST", body: {} });
+          alert(`Called: ${data.called.patient_name} (${data.called.severity})`);
+          renderQueue(data.queue);
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+      document.getElementById("intake").onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const body = Object.fromEntries(new FormData(e.target));
+          const data = await api("/api/emergency", { method: "POST", body });
+          e.target.reset();
+          renderQueue(data.queue);
+        } catch (err) {
+          showError("flash", err.message);
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="card auth-card">
+      <div class="brand" style="margin-bottom:16px;"><div class="brand-mark">+</div> MediCare</div>
+      <h2 id="form-title">Welcome back</h2>
+      <p class="muted">Demo password for all seeded accounts: <b>password123</b></p>
+      <p class="muted">admin / doctor / patient / staff @medicare.local</p>
+      <div class="flash" id="flash"></div>
+      <form class="form" id="login-form">
+        <div id="name-wrap" style="display:none;">
+          <label>Full name</label>
+          <input name="name" placeholder="Your name" />
+        </div>
+        <label>Email</label>
+        <input name="email" type="email" required placeholder="you@email.com" />
+        <label>Password</label>
+        <input name="password" type="password" required />
+        <button class="btn full" type="submit">Continue</button>
+      </form>
+      <p class="muted" style="margin-top:14px;">
+        <a href="#" id="toggle">Need an account? Register as a patient</a>
+      </p>
+      <p><a href="/">Back to home</a></p>
+    </div>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    let mode = "login";
+    const form = document.getElementById("login-form");
+    document.getElementById("toggle").onclick = (e) => {
+      e.preventDefault();
+      mode = mode === "login" ? "register" : "login";
+      document.getElementById("form-title").textContent = mode === "login" ? "Welcome back" : "Create patient account";
+      document.getElementById("name-wrap").style.display = mode === "register" ? "block" : "none";
+      e.target.textContent = mode === "login" ? "Need an account? Register as a patient" : "Already registered? Login";
+    };
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form));
+      try {
+        const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+        const { user } = await api(path, { method: "POST", body: data });
+        goHomeForRole(user.role);
+      } catch (err) {
+        showError("flash", err.message);
+      }
+    };
+  </script>
+</body>
+</html>

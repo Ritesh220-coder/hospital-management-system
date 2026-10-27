@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor dashboard — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand" style="margin-bottom:18px;"><div class="brand-mark">+</div> MediCare</div>
+      <a class="active" href="/doctor-dashboard.html">Dashboard</a>
+      <a href="/emergency.html">Emergency queue</a>
+      <button class="linkish" onclick="logout()">Logout</button>
+    </aside>
+    <main class="main">
+      <h1>Good day, <span data-user-name>Doctor</span></h1>
+      <div class="cards">
+        <div class="kpi"><span>Today's appointments</span><b id="total">0</b></div>
+        <div class="kpi"><span>Completed</span><b id="done">0</b></div>
+        <div class="kpi"><span>Pending</span><b id="pending">0</b></div>
+        <div class="kpi"><span>Emergency waiting</span><b id="em">0</b></div>
+      </div>
+      <div class="split">
+        <div class="card">
+          <h3>Today's schedule</h3>
+          <table class="table" id="sched"><thead><tr><th>Time</th><th>Patient</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card">
+          <h3>Add visit record</h3>
+          <form class="form" id="rec">
+            <label>Patient ID</label>
+            <input name="patient_id" required />
+            <label>Visit date</label>
+            <input type="date" name="visit_date" required />
+            <label>Diagnosis</label>
+            <textarea name="diagnosis" required></textarea>
+            <label>Prescription</label>
+            <textarea name="prescription"></textarea>
+            <button class="btn" type="submit">Save record</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    (async () => {
+      const user = await requireLogin(["doctor", "admin"]);
+      fillUser(user);
+      const { appointments } = await api("/api/appointments");
+      const today = new Date().toISOString().slice(0, 10);
+      const todays = appointments.filter((a) => String(a.appointment_date).slice(0, 10) === today);
+      document.getElementById("total").textContent = todays.length;
+      document.getElementById("done").textContent = todays.filter((a) => a.status === "completed").length;
+      document.getElementById("pending").textContent = todays.filter((a) => a.status === "booked").length;
+      const { queue } = await api("/api/emergency");
+      document.getElementById("em").textContent = queue.length;
+      document.querySelector("#sched tbody").innerHTML = todays.map((a) => `
+        <tr>
+          <td>${formatTime(a.appointment_time)}</td>
+          <td>${a.patient_name}</td>
+          <td><span class="badge ${a.status}">${a.status}</span></td>
+          <td>${a.status === "booked" ? `<button class="btn ghost" data-id="${a.id}">Complete</button>` : ""}</td>
+        </tr>
+      `).join("") || "<tr><td colspan='4'>No visits today</td></tr>";
+      document.querySelectorAll("[data-id]").forEach((btn) => {
+        btn.onclick = async () => {
+          await api(`/api/appointments/${btn.dataset.id}`, { method: "PATCH", body: { status: "completed" } });
+          location.reload();
+        };
+      });
+      document.getElementById("rec").onsubmit = async (e) => {
+        e.preventDefault();
+        const body = Object.fromEntries(new FormData(e.target));
+        await api("/api/records", { method: "POST", body });
+        alert("Record saved");
+        e.target.reset();
+      };
+    })();
+  </script>
+</body>
+</html>

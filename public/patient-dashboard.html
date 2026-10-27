@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient dashboard — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand" style="margin-bottom:18px;"><div class="brand-mark">+</div> MediCare</div>
+      <a class="active" href="/patient-dashboard.html">Dashboard</a>
+      <a href="/appointments.html">Appointments</a>
+      <a href="/records.html">Records</a>
+      <a href="/emergency.html">Emergency</a>
+      <button class="linkish" onclick="logout()">Logout</button>
+    </aside>
+    <main class="main">
+      <div class="page-title">
+        <div>
+          <h1>Welcome, <span data-user-name>Patient</span></h1>
+          <p class="muted">Your upcoming visits and medical history</p>
+        </div>
+        <a class="btn" href="/appointments.html">Book appointment</a>
+      </div>
+      <div class="split">
+        <div class="card">
+          <h3>Upcoming appointments</h3>
+          <table class="table" id="appts"><thead><tr><th>When</th><th>Doctor</th><th>Status</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card">
+          <h3>Quick actions</h3>
+          <p class="muted">Need care today? Book a slot or visit emergency intake.</p>
+          <p><a class="btn ghost" href="/appointments.html">Find a doctor</a></p>
+          <p><a class="btn danger" href="/emergency.html">Emergency department</a></p>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    (async () => {
+      const user = await requireLogin(["patient"]);
+      fillUser(user);
+      const { appointments } = await api("/api/appointments");
+      const body = document.querySelector("#appts tbody");
+      body.innerHTML = appointments.map((a) => `
+        <tr>
+          <td>${a.appointment_date?.slice(0,10)} ${formatTime(a.appointment_time)}</td>
+          <td>${a.doctor_name} · ${a.specialization}</td>
+          <td><span class="badge ${a.status}">${a.status}</span></td>
+        </tr>
+      `).join("") || "<tr><td colspan='3'>No appointments yet</td></tr>";
+    })();
+  </script>
+</body>
+</html>

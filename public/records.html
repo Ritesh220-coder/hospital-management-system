@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical records — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand" style="margin-bottom:18px;"><div class="brand-mark">+</div> MediCare</div>
+      <a href="/patient-dashboard.html">Dashboard</a>
+      <a href="/appointments.html">Appointments</a>
+      <a class="active" href="/records.html">Records</a>
+      <button class="linkish" onclick="logout()">Logout</button>
+    </aside>
+    <main class="main">
+      <div class="page-title">
+        <h1>Patient medical records</h1>
+        <button class="btn ghost" onclick="window.print()">Download / print</button>
+      </div>
+      <div class="card" id="picker" style="display:none;margin-bottom:16px;">
+        <label>Select patient</label>
+        <select id="patient-select"></select>
+      </div>
+      <div class="card" id="profile"></div>
+      <div class="card" style="margin-top:16px;">
+        <h3>Visit history</h3>
+        <div id="history"></div>
+      </div>
+    </main>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    async function showRecords(query) {
+      const { patient, records } = await api("/api/records" + query);
+      if (!patient) {
+        document.getElementById("profile").innerHTML = "<p>No patient profile linked to this account.</p>";
+        document.getElementById("history").innerHTML = "";
+        return;
+      }
+      document.getElementById("profile").innerHTML = `
+        <h2>${patient.name}</h2>
+        <p>Age: <b>${patient.age}</b> &nbsp; Blood group: <b>${patient.blood_group || "—"}</b> &nbsp; Gender: <b>${patient.gender}</b></p>
+        <p class="muted">${patient.address || ""} · ${patient.phone || ""}</p>
+        <p>${patient.medical_history || ""}</p>
+      `;
+      document.getElementById("history").innerHTML = records.map((r) => `
+        <div style="padding:14px 0;border-bottom:1px solid var(--line);">
+          <b>${String(r.visit_date).slice(0,10)}</b>
+          <div>${r.doctor_name} — ${r.specialization}</div>
+          <p>Diagnosis: ${r.diagnosis}</p>
+          <p class="muted">Prescription: ${r.prescription || "—"}</p>
+        </div>
+      `).join("") || "<p class='muted'>No visits recorded yet.</p>";
+    }
+    (async () => {
+      const user = await requireLogin(["patient", "doctor", "admin", "staff"]);
+      if (user.role === "patient") {
+        await showRecords("");
+        return;
+      }
+      const { patients } = await api("/api/patients");
+      document.getElementById("picker").style.display = "block";
+      const sel = document.getElementById("patient-select");
+      sel.innerHTML = patients.map((p) => `<option value="${p.id}">${p.name}</option>`).join("");
+      sel.onchange = () => showRecords("?patient_id=" + sel.value);
+      if (patients[0]) await showRecords("?patient_id=" + patients[0].id);
+    })();
+  </script>
+</body>
+</html>

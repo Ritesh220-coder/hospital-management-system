@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book appointment — MediCare</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand" style="margin-bottom:18px;"><div class="brand-mark">+</div> MediCare</div>
+      <a href="/patient-dashboard.html">Dashboard</a>
+      <a class="active" href="/appointments.html">Appointments</a>
+      <a href="/records.html">Records</a>
+      <button class="linkish" onclick="logout()">Logout</button>
+    </aside>
+    <main class="main">
+      <div class="page-title"><h1>Book appointment</h1></div>
+      <div class="split">
+        <div class="card">
+          <form class="form" id="book">
+            <div class="flash" id="flash"></div>
+            <label>Department / doctor</label>
+            <select name="doctor_id" id="doctor" required></select>
+            <p class="muted" id="schedule"></p>
+            <label>Date</label>
+            <input type="date" name="appointment_date" id="date" required />
+            <label>Available slots</label>
+            <div class="slots" id="slots"></div>
+            <input type="hidden" name="appointment_time" id="time" />
+            <button class="btn" type="submit">Confirm appointment</button>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Your bookings</h3>
+          <table class="table" id="mine"><thead><tr><th>Date</th><th>Time</th><th>Doctor</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    let doctors = [];
+    async function loadSlots() {
+      const doctorId = document.getElementById("doctor").value;
+      const date = document.getElementById("date").value;
+      document.getElementById("time").value = "";
+      if (!doctorId || !date) return;
+      const { slots } = await api(`/api/doctors/${doctorId}/slots?date=${date}`);
+      document.getElementById("slots").innerHTML = slots.length
+        ? slots.map((s) => `<button type="button" class="slot" data-t="${s}">${s}</button>`).join("")
+        : "<p class='muted'>No free slots on this date.</p>";
+      document.querySelectorAll(".slot").forEach((btn) => {
+        btn.onclick = () => {
+          document.querySelectorAll(".slot").forEach((b) => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          document.getElementById("time").value = btn.dataset.t;
+        };
+      });
+    }
+    (async () => {
+      await requireLogin(["patient", "staff", "admin"]);
+      const data = await api("/api/doctors");
+      doctors = data.doctors;
+      document.getElementById("doctor").innerHTML = doctors.map((d) =>
+        `<option value="${d.id}">${d.specialization} — ${d.name}</option>`
+      ).join("");
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById("date").value = today;
+      document.getElementById("doctor").onchange = () => {
+        const d = doctors.find((x) => String(x.id) === document.getElementById("doctor").value);
+        document.getElementById("schedule").textContent = d
+          ? "Available: " + d.schedule.map((s) => `${weekdayName(s.weekday)} ${formatTime(s.start_time)}–${formatTime(s.end_time)}`).join(", ")
+          : "";
+        loadSlots();
+      };
+      document.getElementById("date").onchange = loadSlots;
+      document.getElementById("doctor").onchange();
+      const { appointments } = await api("/api/appointments");
+      document.querySelector("#mine tbody").innerHTML = appointments.map((a) =>
+        `<tr><td>${String(a.appointment_date).slice(0,10)}</td><td>${formatTime(a.appointment_time)}</td><td>${a.doctor_name}</td></tr>`
+      ).join("");
+      document.getElementById("book").onsubmit = async (e) => {
+        e.preventDefault();
+        const body = Object.fromEntries(new FormData(e.target));
+        if (!body.appointment_time) return showError("flash", "Pick a time slot");
+        try {
+          await api("/api/appointments", { method: "POST", body });
+          location.reload();
+        } catch (err) {
+          showError("flash", err.message);
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

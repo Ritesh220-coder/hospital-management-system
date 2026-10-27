@@ -1,0 +1,15 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hospital_management
+    ports:
+      - "3306:3306"
+    volumes:
+      - medicare_mysql:/var/lib/mysql
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+
+volumes:
+  medicare_mysql:
